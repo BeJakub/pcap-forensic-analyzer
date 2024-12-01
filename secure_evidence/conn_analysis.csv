@@ -1,0 +1,13 @@
+ts,uid,id.orig_h,id.orig_p,id.resp_h,id.resp_p,proto,service,duration,orig_bytes,resp_bytes,conn_state,local_orig,local_resp,missed_bytes,history,orig_pkts,orig_ip_bytes,resp_pkts,resp_ip_bytes,kategoria,long_duration,large_transfer,resp_p,kategoria_portu
+1105667416.501471,CZy3Kx4fCssCDk57K6,192.168.1.3,1393,192.168.1.1,53,udp,dns,0.002672910690307,42.0,70.0,SF,True,True,0,Dd,1,70,1,98,Wewnetrzne,Nie,Nie,53,Standardowy
+1105667419.113417,CASU6a2V0lG3lF3Fy5,192.168.1.3,1394,192.168.1.1,53,udp,dns,0.017781972885131,33.0,33.0,SF,True,True,0,Dd,1,61,1,61,Wewnetrzne,Nie,Nie,53,Standardowy
+1105667419.132818,CTTesd2OLttrxbTFKb,192.168.1.3,1395,192.168.1.1,53,udp,dns,0.309664011001586,29.0,45.0,SF,True,True,0,Dd,1,57,1,73,Wewnetrzne,Nie,Nie,53,Standardowy
+1105667441.977621,CNhLrZ2ynKl27TvnPa,192.168.1.3,1396,192.168.1.2,53,tcp,,5.312042951583862,9.0,1300.0,RSTR,True,True,0,SAhdDr,7,297,5,1508,Wewnetrzne,Nie,Tak,53,Standardowy
+1105667464.959352,CYYnJv4aMlOU54LUfl,192.168.1.3,1399,192.168.1.2,21,tcp,,0.018462896347045,0.0,0.0,REJ,True,True,0,Sr,1,48,1,40,Wewnetrzne,Nie,Nie,21,Standardowy
+1105667465.416004,CLnr0J3iAn718Otasb,192.168.1.3,1399,192.168.1.2,21,tcp,,0.006891965866088001,0.0,0.0,REJ,True,True,0,Sr,1,48,1,40,Wewnetrzne,Nie,Nie,21,Standardowy
+1105667470.170173,C36hTQ37mmv9tDysJk,192.168.1.3,1402,192.168.1.2,21,tcp,,0.019323110580444003,0.0,0.0,REJ,True,True,0,Sr,1,48,1,40,Wewnetrzne,Nie,Nie,21,Standardowy
+1105667465.916733,C7TzpF2kR8ZWG50Loa,192.168.1.3,1399,192.168.1.2,21,tcp,,0.018143892288208,0.0,0.0,REJ,True,True,0,Sr,1,48,1,40,Wewnetrzne,Nie,Nie,21,Standardowy
+1105667470.623508,CJsh7i3rOqdtnnH8W1,192.168.1.3,1402,192.168.1.2,21,tcp,,0.018971920013427002,0.0,0.0,REJ,True,True,0,Sr,1,48,1,40,Wewnetrzne,Nie,Nie,21,Standardowy
+1105667471.12432,Cr2w3U12FXFepPVz7i,192.168.1.3,1402,192.168.1.2,21,tcp,,0.019154071807861002,0.0,0.0,REJ,True,True,0,Sr,1,48,1,40,Wewnetrzne,Nie,Nie,21,Standardowy
+1105667492.260904,CMRMNt4uAuRJqlisNj,192.168.1.3,1403,192.168.1.2,23,tcp,,9.793483018875122,16.0,1413.0,RSTR,True,True,0,SAhdDr,9,384,7,1701,Wewnetrzne,Nie,Tak,23,Standardowy
+1105667512.928295,Ck0O813adFu0ngTvf2,192.168.1.3,1404,192.168.1.2,80,tcp,,3.288697004318237,9.0,1300.0,RSTR,True,True,0,SAhdDr,7,297,5,1508,Wewnetrzne,Nie,Tak,80,Standardowy

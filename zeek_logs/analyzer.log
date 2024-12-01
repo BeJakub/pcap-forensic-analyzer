@@ -1,0 +1,3 @@
+{"ts":1105667447.289664,"cause":"violation","analyzer_kind":"protocol","analyzer_name":"DNS","uid":"CNhLrZ2ynKl27TvnPa","id.orig_h":"192.168.1.3","id.orig_p":1396,"id.resp_h":"192.168.1.2","id.resp_p":53,"failure_reason":"DNS_Conn_count_too_large"}
+{"ts":1105667512.996103,"cause":"violation","analyzer_kind":"protocol","analyzer_name":"HTTP","uid":"Ck0O813adFu0ngTvf2","id.orig_h":"192.168.1.3","id.orig_p":1404,"id.resp_h":"192.168.1.2","id.resp_p":80,"failure_reason":"not a http reply line"}
+{"ts":1105667514.447789,"cause":"violation","analyzer_kind":"protocol","analyzer_name":"HTTP","uid":"Ck0O813adFu0ngTvf2","id.orig_h":"192.168.1.3","id.orig_p":1404,"id.resp_h":"192.168.1.2","id.resp_p":80,"failure_reason":"not a http request line"}
