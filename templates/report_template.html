@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Raport Analizy PCAP</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        h1, h2 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #eee; }
+    </style>
+</head>
+<body>
+    <h1>Raport Analizy PCAP</h1>
+
+    <h2>Informacje o pliku PCAP</h2>
+    <table>
+        <tr>
+            <th>Rozmiar pliku (bajty)</th>
+            <td>{{ analysis.pcap_info.file_size_bytes }}</td>
+        </tr>
+        <tr>
+            <th>Liczba pakietów</th>
+            <td>{{ analysis.pcap_info.packet_count }}</td>
+        </tr>
+        <tr>
+            <th>Czas rozpoczęcia</th>
+            <td>{{ analysis.pcap_info.start_time }}</td>
+        </tr>
+        <tr>
+            <th>Czas zakończenia</th>
+            <td>{{ analysis.pcap_info.end_time }}</td>
+        </tr>
+        <tr>
+            <th>Protokoły</th>
+            <td>
+                {% for proto, count in analysis.pcap_info.protocols.items() %}
+                    {{ proto }}: {{ count }}<br>
+                {% endfor %}
+            </td>
+        </tr>
+    </table>
+
+    {% if analysis.conn_stats %}
+    <h2>Statystyki Połączeń</h2>
+    <h3>Kategorie Połączeń</h3>
+    <table>
+        <tr><th>Kategoria</th><th>Liczba</th></tr>
+        {% for category, count in analysis.conn_stats.kategoria.items() %}
+        <tr><td>{{ category }}</td><td>{{ count }}</td></tr>
+        {% endfor %}
+    </table>
+
+    <h3>Czas Trwania Połączeń</h3>
+    <table>
+        <tr><th>Czy długie</th><th>Liczba</th></tr>
+        {% for duration, count in analysis.conn_stats.long_duration.items() %}
+        <tr><td>{{ duration }}</td><td>{{ count }}</td></tr>
+        {% endfor %}
+    </table>
+
+    <h3>Transfer Danych</h3>
+    <table>
+        <tr><th>Duży transfer</th><th>Liczba</th></tr>
+        {% for transfer, count in analysis.conn_stats.large_transfer.items() %}
+        <tr><td>{{ transfer }}</td><td>{{ count }}</td></tr>
+        {% endfor %}
+    </table>
+
+    <h3>Kategorie Portów</h3>
+    <table>
+        <tr><th>Kategoria Portu</th><th>Liczba</th></tr>
+        {% for port_category, count in analysis.conn_stats.kategoria_portu.items() %}
+        <tr><td>{{ port_category }}</td><td>{{ count }}</td></tr>
+        {% endfor %}
+    </table>
+
+    <h3>Protokoły</h3>
+    <table>
+        <tr><th>Protokół</th><th>Liczba</th></tr>
+        {% for proto, count in analysis.conn_stats.protocols.items() %}
+        <tr><td>{{ proto }}</td><td>{{ count }}</td></tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    {% if analysis.dns_stats %}
+    <h2>Statystyki DNS</h2>
+    <table>
+        <tr><th>Podejrzana Domena</th><th>Liczba</th></tr>
+        {% for suspicious, count in analysis.dns_stats.items() %}
+        <tr><td>{{ suspicious }}</td><td>{{ count }}</td></tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    {% if analysis.http_stats %}
+    <h2>Statystyki HTTP</h2>
+    <h3>Podejrzane User-Agent</h3>
+    <table>
+        <tr><th>Podejrzany</th><th>Liczba</th></tr>
+        {% for suspicious, count in analysis.http_stats.podejrzany_user_agent.items() %}
+        <tr><td>{{ suspicious }}</td><td>{{ count }}</td></tr>
+        {% endfor %}
+    </table>
+
+    <h3>Podejrzane URI</h3>
+    <table>
+        <tr><th>Podejrzany</th><th>Liczba</th></tr>
+        {% for suspicious, count in analysis.http_stats.podejrzany_uri.items() %}
+        <tr><td>{{ suspicious }}</td><td>{{ count }}</td></tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    {% if analysis.ssl_stats %}
+    <h2>Statystyki SSL</h2>
+    <table>
+        <tr><th>Samopodpisany Certyfikat</th><th>Liczba</th></tr>
+        {% for self_signed, count in analysis.ssl_stats.items() %}
+        <tr><td>{{ self_signed }}</td><td>{{ count }}</td></tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+</body>
+</html>

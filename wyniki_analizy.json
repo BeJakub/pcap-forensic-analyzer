@@ -4,12 +4,12 @@
         "packet_count": 80106,
         "start_time": "2015-04-13 02:00:09",
         "end_time": "2015-04-13 11:34:44",
-        "protocols": [
-            17,
-            2,
-            6,
-            1
-        ]
+        "protocols": {
+            "TCP": 65389,
+            "UDP": 7801,
+            "ICMP": 96,
+            "IGMP": 14
+        }
     },
     "conn_stats": {
         "kategoria": {

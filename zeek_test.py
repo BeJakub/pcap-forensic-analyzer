@@ -9,6 +9,9 @@ import shutil
 from datetime import datetime
 from scapy.all import rdpcap, PcapReader
 from cryptography.fernet import Fernet
+from jinja2 import Environment, FileSystemLoader
+from weasyprint import HTML
+
 
 class ZeekAnalyzer:
     def __init__(self, pcap_file, zeek_path='zeek', output_dir='zeek_logs', secure_dir='secure_evidence',
@@ -120,14 +123,31 @@ class ZeekAnalyzer:
         print("Analiza pliku PCAP...")
         pcap_size = os.path.getsize(self.pcap_file)
         packet_count = 0
-        protocols = set()
+        protocol_counts = {}
         timestamps = []
+
+        # Mapa protokołów na podstawie numerów IANA
+        protocol_map = {
+            1: 'ICMP',
+            2: 'IGMP',
+            6: 'TCP',
+            17: 'UDP',
+            41: 'IPv6',
+            47: 'GRE',
+            50: 'ESP',
+            51: 'AH',
+            58: 'ICMPv6',
+            89: 'OSPF',
+            # Możesz dodać więcej protokołów w razie potrzeby
+        }
 
         with PcapReader(self.pcap_file) as pcap_reader:
             for pkt in pcap_reader:
                 packet_count += 1
                 if 'IP' in pkt:
-                    protocols.add(pkt['IP'].proto)
+                    proto_num = pkt['IP'].proto
+                    protocol_name = protocol_map.get(proto_num, f'Unknown ({proto_num})')
+                    protocol_counts[protocol_name] = protocol_counts.get(protocol_name, 0) + 1
                 if hasattr(pkt, 'time'):
                     timestamps.append(float(pkt.time))
 
@@ -139,10 +159,11 @@ class ZeekAnalyzer:
             'packet_count': packet_count,
             'start_time': start_time.strftime('%Y-%m-%d %H:%M:%S') if start_time else 'Unknown',
             'end_time': end_time.strftime('%Y-%m-%d %H:%M:%S') if end_time else 'Unknown',
-            'protocols': list(protocols)
+            'protocols': protocol_counts
         }
 
         print("Analiza pliku PCAP zakończona.")
+
 
     def analyze_conn_log(self):
         """Analizuje połączenia z pliku conn.log z kategoryzacją i parametryzacją."""
@@ -379,6 +400,29 @@ class ZeekAnalyzer:
         os.chmod(output_file, 0o600)
         print(f"Wyniki analizy zapisane w {output_file}")
 
+    # Dodajemy funkcję generującą raport PDF
+    def generate_pdf_report(self, template_dir='templates', output_file='report.pdf'):
+        """Generuje raport w formacie PDF na podstawie wyników analizy."""
+        print("Generowanie raportu PDF...")
+
+        # Upewnij się, że katalog z szablonami istnieje
+        if not os.path.exists(template_dir):
+            os.makedirs(template_dir)
+            # Możesz tutaj dodać kod tworzący domyślny szablon, jeśli nie istnieje
+            # Dla uproszczenia zakładamy, że szablon istnieje
+
+        # Ładowanie szablonu
+        env = Environment(loader=FileSystemLoader(template_dir))
+        template = env.get_template('report_template.html')
+
+        # Renderowanie szablonu z danymi
+        html_out = template.render(analysis=self.analysis_results)
+
+        # Generowanie PDF
+        HTML(string=html_out).write_pdf(output_file)
+
+        print(f"Raport PDF został wygenerowany: {output_file}")
+
     def run_full_analysis(self):
         """Wykonuje pełną analizę."""
         self.analyze_pcap_file()
@@ -390,6 +434,7 @@ class ZeekAnalyzer:
         self.analyze_weird_log()
         self.analyze_notice_log()
         self.save_analysis('wyniki_analizy.json')
+        self.generate_pdf_report()
 
 if __name__ == '__main__':
     # Ścieżka do pliku PCAP
