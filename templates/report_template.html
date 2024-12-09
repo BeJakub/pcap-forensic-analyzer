@@ -123,6 +123,28 @@
         {% endfor %}
     </table>
     {% endif %}
+        <h2>Threat Intelligence</h2>
+    {% if analysis.conn_stats.abuse_score_orig_h %}
+    <h3>AbuseIPDB</h3>
+    <ul>
+        <li><strong>Adresy źródłowe:</strong> {{ analysis.conn_stats.abuse_score_orig_h }}</li>
+        <li><strong>Adresy docelowe:</strong> {{ analysis.conn_stats.abuse_score_resp_h }}</li>
+    </ul>
+    {% else %}
+    <p>Brak danych z AbuseIPDB.</p>
+    {% endif %}
+
+    {% if analysis.files_log %}
+    <h3>VirusTotal</h3>
+    <ul>
+        {% for file in analysis.files_log %}
+        <li>Plik {{ file.name }}: Złośliwe detekcje: {{ file.malicious_count or 'Brak API' }}</li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>Brak danych z VirusTotal.</p>
+    {% endif %}
+
 
 </body>
 </html>

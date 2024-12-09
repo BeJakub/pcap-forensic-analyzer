@@ -9,7 +9,8 @@
             "UDP": 7801,
             "ICMP": 96,
             "IGMP": 14
-        }
+        },
+        "suspicious_packets_count": 0
     },
     "conn_stats": {
         "kategoria": {
@@ -31,6 +32,12 @@
             "udp": 2470,
             "tcp": 2056,
             "icmp": 90
+        },
+        "abuse_score_orig_h": {
+            "Brak API": 4616
+        },
+        "abuse_score_resp_h": {
+            "Brak API": 4616
         }
     },
     "dns_stats": {

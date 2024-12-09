@@ -1,3 +1,5 @@
+# zeek_analyzer.py
+
 import os
 import subprocess
 import glob
@@ -11,11 +13,12 @@ from scapy.all import rdpcap, PcapReader
 from cryptography.fernet import Fernet
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
-
+import requests  # Dodano do obsługi zapytań do API Threat Intelligence
 
 class ZeekAnalyzer:
     def __init__(self, pcap_file, zeek_path='zeek', output_dir='zeek_logs', secure_dir='secure_evidence',
-                 local_nets=None, duration_threshold=10.0, bytes_threshold=1000):
+                 local_nets=None, duration_threshold=10.0, bytes_threshold=1000,
+                 abuseipdb_api_key=None, virustotal_api_key=None):
         self.pcap_file = pcap_file
         self.zeek_path = zeek_path
         self.output_dir = output_dir
@@ -25,10 +28,17 @@ class ZeekAnalyzer:
         self.duration_threshold = duration_threshold
         self.bytes_threshold = bytes_threshold
         self.analysis_results = {}
+        self.abuseipdb_api_key = abuseipdb_api_key
+        self.virustotal_api_key = virustotal_api_key
 
         # Generowanie klucza do szyfrowania danych
         self.encryption_key = Fernet.generate_key()
         self.cipher_suite = Fernet(self.encryption_key)
+
+        # Inicjalizacja cache dla wyników Threat Intelligence
+        self.ip_threat_cache = {}
+        self.domain_threat_cache = {}
+        self.hash_threat_cache = {}
 
     def run_zeek(self):
         """Uruchamia Zeeka na pliku PCAP z użyciem zeek_config.zeek."""
@@ -117,14 +127,85 @@ class ZeekAnalyzer:
         except ValueError:
             pass
         return False
+    def check_ip_threat_intel(self, ip):
+        """Sprawdza adres IP w bazie Threat Intelligence (np. AbuseIPDB)."""
+        if not self.abuseipdb_api_key:
+            return {'abuse_confidence_score': 'Brak API'}
+    
+        """Sprawdza adres IP w bazie Threat Intelligence (np. AbuseIPDB)."""
+        if ip in self.ip_threat_cache:
+            return self.ip_threat_cache[ip]
+
+        if not self.abuseipdb_api_key:
+            # Jeśli nie podano klucza API, pomiń sprawdzanie
+            self.ip_threat_cache[ip] = {'abuse_confidence_score': None}
+            return self.ip_threat_cache[ip]
+
+        url = 'https://api.abuseipdb.com/api/v2/check'
+        params = {
+            'ipAddress': ip,
+            'maxAgeInDays': 90
+        }
+        headers = {
+            'Accept': 'application/json',
+            'Key': self.abuseipdb_api_key
+        }
+
+        try:
+            response = requests.get(url, headers=headers, params=params, timeout=10)
+            if response.status_code == 200:
+                data = response.json()['data']
+                self.ip_threat_cache[ip] = data
+                return data
+            else:
+                self.ip_threat_cache[ip] = {'abuse_confidence_score': None}
+                return self.ip_threat_cache[ip]
+        except requests.RequestException:
+            self.ip_threat_cache[ip] = {'abuse_confidence_score': None}
+            return self.ip_threat_cache[ip]
+
+    def check_hash_threat_intel(self, file_hash):
+
+        """Sprawdza hash pliku w bazie Threat Intelligence (np. VirusTotal)."""
+        if not self.virustotal_api_key:
+            return {'malicious': 'Brak API'}
+
+        """Sprawdza hash pliku w bazie Threat Intelligence (np. VirusTotal)."""
+        if file_hash in self.hash_threat_cache:
+            return self.hash_threat_cache[file_hash]
+
+        if not self.virustotal_api_key:
+            # Jeśli nie podano klucza API, pomiń sprawdzanie
+            self.hash_threat_cache[file_hash] = {'malicious': None}
+            return self.hash_threat_cache[file_hash]
+
+        url = f'https://www.virustotal.com/api/v3/files/{file_hash}'
+        headers = {
+            'x-apikey': self.virustotal_api_key
+        }
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                malicious_count = data['data']['attributes']['last_analysis_stats']['malicious']
+                self.hash_threat_cache[file_hash] = {'malicious': malicious_count}
+                return self.hash_threat_cache[file_hash]
+            else:
+                self.hash_threat_cache[file_hash] = {'malicious': None}
+                return self.hash_threat_cache[file_hash]
+        except requests.RequestException:
+            self.hash_threat_cache[file_hash] = {'malicious': None}
+            return self.hash_threat_cache[file_hash]
 
     def analyze_pcap_file(self):
-        """Analizuje podstawowe cechy pliku PCAP."""
+        """Analizuje podstawowe cechy pliku PCAP oraz przeprowadza głęboką inspekcję pakietów (DPI)."""
         print("Analiza pliku PCAP...")
         pcap_size = os.path.getsize(self.pcap_file)
         packet_count = 0
         protocol_counts = {}
         timestamps = []
+        suspicious_packets = []
 
         # Mapa protokołów na podstawie numerów IANA
         protocol_map = {
@@ -151,6 +232,18 @@ class ZeekAnalyzer:
                 if hasattr(pkt, 'time'):
                     timestamps.append(float(pkt.time))
 
+                # Głęboka inspekcja pakietów (DPI)
+                if pkt.haslayer('TCP') and pkt.haslayer('Raw'):
+                    payload = pkt['Raw'].load
+                    # Szukanie podejrzanych wzorców w danych pakietu
+                    if b'evil' in payload.lower() or b'malware' in payload.lower():
+                        suspicious_packets.append({
+                            'timestamp': pkt.time,
+                            'src_ip': pkt['IP'].src,
+                            'dst_ip': pkt['IP'].dst,
+                            'payload': payload.hex()
+                        })
+
         start_time = datetime.fromtimestamp(min(timestamps)) if timestamps else None
         end_time = datetime.fromtimestamp(max(timestamps)) if timestamps else None
 
@@ -159,11 +252,18 @@ class ZeekAnalyzer:
             'packet_count': packet_count,
             'start_time': start_time.strftime('%Y-%m-%d %H:%M:%S') if start_time else 'Unknown',
             'end_time': end_time.strftime('%Y-%m-%d %H:%M:%S') if end_time else 'Unknown',
-            'protocols': protocol_counts
+            'protocols': protocol_counts,
+            'suspicious_packets_count': len(suspicious_packets)
         }
 
-        print("Analiza pliku PCAP zakończona.")
+        # Zapisanie podejrzanych pakietów do pliku
+        if suspicious_packets:
+            output_file = os.path.join(self.secure_dir, "suspicious_packets.json")
+            with open(output_file, 'w') as f:
+                json.dump(suspicious_packets, f, indent=4)
+            os.chmod(output_file, 0o600)
 
+        print("Analiza pliku PCAP zakończona.")
 
     def analyze_conn_log(self):
         """Analizuje połączenia z pliku conn.log z kategoryzacją i parametryzacją."""
@@ -200,6 +300,15 @@ class ZeekAnalyzer:
         conn_log['resp_p'] = pd.to_numeric(conn_log['id.resp_p'], errors='coerce')
         conn_log['kategoria_portu'] = conn_log['resp_p'].apply(lambda x: 'Standardowy' if 1 <= x <= 1024 else 'Niestandardowy')
 
+        # Integracja z Threat Intelligence dla adresów IP
+        def get_abuse_score(ip):
+            data = self.check_ip_threat_intel(ip)
+            score = data.get('abuse_confidence_score')
+            return score if score is not None else 'Nieznany'
+
+        conn_log['abuse_score_orig_h'] = conn_log['id.orig_h'].apply(get_abuse_score)
+        conn_log['abuse_score_resp_h'] = conn_log['id.resp_h'].apply(get_abuse_score)
+
         # Hashowanie adresów IP dla bezpieczeństwa
         conn_log['id.orig_h'] = conn_log['id.orig_h'].apply(lambda x: self.cipher_suite.encrypt(x.encode()).decode())
         conn_log['id.resp_h'] = conn_log['id.resp_h'].apply(lambda x: self.cipher_suite.encrypt(x.encode()).decode())
@@ -217,7 +326,9 @@ class ZeekAnalyzer:
             'long_duration': conn_log['long_duration'].value_counts().to_dict(),
             'large_transfer': conn_log['large_transfer'].value_counts().to_dict(),
             'kategoria_portu': conn_log['kategoria_portu'].value_counts().to_dict(),
-            'protocols': conn_log['proto'].value_counts().to_dict()
+            'protocols': conn_log['proto'].value_counts().to_dict(),
+            'abuse_score_orig_h': conn_log['abuse_score_orig_h'].value_counts().to_dict(),
+            'abuse_score_resp_h': conn_log['abuse_score_resp_h'].value_counts().to_dict()
         }
 
         print("Analiza conn.log zakończona.")
@@ -242,6 +353,14 @@ class ZeekAnalyzer:
             return 'Nie'
 
         dns_log['podejrzana_domena'] = dns_log['query'].apply(is_suspicious_domain)
+
+        # Integracja z Threat Intelligence dla domen
+        def check_domain_threat_intel(domain):
+            # Placeholder dla sprawdzania domen w bazie Threat Intelligence
+            # Możesz zintegrować z innym serwisem, który obsługuje domeny
+            return 'Nieznany'
+
+        dns_log['domain_threat_level'] = dns_log['query'].apply(check_domain_threat_intel)
 
         # Zapisanie wyników
         output_file = os.path.join(self.secure_dir, "dns_analysis.csv")
@@ -349,9 +468,14 @@ class ZeekAnalyzer:
                     with open(file_path, "rb") as f:
                         for byte_block in iter(lambda: f.read(4096), b""):
                             sha256_hash.update(byte_block)
-                    hash_hex = sha256_hash.hexdigest()
+                        hash_hex = sha256_hash.hexdigest()
 
                     files_log.loc[files_log['fuid'] == file, 'sha256'] = hash_hex
+
+                    # Integracja z Threat Intelligence dla hashy plików
+                    threat_info = self.check_hash_threat_intel(hash_hex)
+                    malicious_count = threat_info.get('malicious')
+                    files_log.loc[files_log['fuid'] == file, 'malicious_count'] = malicious_count
 
                     dest_path = os.path.join(self.secure_dir, 'extracted_files', file)
                     dest_dir = os.path.dirname(dest_path)
@@ -440,6 +564,10 @@ if __name__ == '__main__':
     # Ścieżka do pliku PCAP
     pcap_file = "data/snort.log.1428883207"
 
+    # Wprowadź swoje klucze API
+    abuseipdb_api_key = os.getenv('ABUSEIPDB_API_KEY', None)
+    virustotal_api_key = os.getenv('VIRUSTOTAL_API_KEY', None)
+
     # Inicjalizacja analizatora z parametrami
     analyzer = ZeekAnalyzer(
         pcap_file=pcap_file,
@@ -447,7 +575,9 @@ if __name__ == '__main__':
         duration_threshold=10.0,
         bytes_threshold=1000,
         output_dir='zeek_logs',
-        secure_dir='secure_evidence'
+        secure_dir='secure_evidence',
+        abuseipdb_api_key=abuseipdb_api_key,
+        virustotal_api_key=virustotal_api_key
     )
 
     # Uruchomienie Zeeka
